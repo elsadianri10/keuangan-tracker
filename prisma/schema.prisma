@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum PiutangType {
+  DANA_PRIBADI
+  LIMIT_PAY_LATER
+}
+
+enum StockExchange {
+  IDX
+  US
+}
+
+enum MarketCurrency {
+  USD
+  IDR
+  EUR
+  SGD
+  JPY
+  GBP
+  AUD
+}
+
+model User {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  firebaseUid String    @unique @map("firebase_uid") @db.VarChar(128)
+  email       String    @unique @db.VarChar(255)
+  displayName String?   @map("display_name") @db.VarChar(255)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.DateTime(0)
+  hutang      Hutang[]
+  marketPreference MarketPreference?
+  piutang     Piutang[]
+  stockWatchlistItems StockWatchlistItem[]
+  tagihan     Tagihan[]
+
+  @@map("users")
+}
+
+model Tagihan {
+  id          BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  userId      BigInt        @map("user_id") @db.UnsignedBigInt
+  namaAkun    String        @map("nama_akun") @db.VarChar(100)
+  customAkun  String?       @map("custom_akun") @db.VarChar(255)
+  pembukuan   Int           @db.UnsignedTinyInt
+  jatuhTempo  Int           @map("jatuh_tempo") @db.UnsignedTinyInt
+  biayaAdmin  Decimal?      @map("biaya_admin") @db.Decimal(15, 2)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.DateTime(0)
+  items       TagihanItem[]
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, namaAkun], map: "idx_tagihan_user_nama")
+  @@map("tagihan")
+}
+
+model TagihanItem {
+  id                    BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  tagihanId             BigInt   @map("tagihan_id") @db.UnsignedBigInt
+  keterangan            String   @db.VarChar(255)
+  tenor                 Int      @db.UnsignedInt
+  bulanCicilanPertama   DateTime @map("bulan_cicilan_pertama") @db.Date
+  bulanCicilanTerakhir  DateTime @map("bulan_cicilan_terakhir") @db.Date
+  nominal               Decimal  @db.Decimal(15, 2)
+  createdAt             DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.DateTime(0)
+  tagihan               Tagihan  @relation(fields: [tagihanId], references: [id], onDelete: Cascade)
+  installments          TagihanInstallment[]
+
+  @@index([tagihanId, bulanCicilanPertama], map: "idx_tagihan_items_tagihan_tanggal")
+  @@map("tagihan_items")
+}
+
+model TagihanInstallment {
+  id                BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  tagihanItemId     BigInt      @map("tagihan_item_id") @db.UnsignedBigInt
+  installmentNumber Int         @map("installment_number") @db.UnsignedInt
+  nominal           Decimal     @db.Decimal(15, 2)
+  isPaid            Boolean     @default(false) @map("is_paid")
+  paidAt            DateTime?   @map("paid_at") @db.DateTime(0)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.DateTime(0)
+  tagihanItem       TagihanItem @relation(fields: [tagihanItemId], references: [id], onDelete: Cascade)
+
+  @@unique([tagihanItemId, installmentNumber], map: "uq_tagihan_installment_item_number")
+  @@index([tagihanItemId, isPaid], map: "idx_tagihan_installment_item_paid")
+  @@map("tagihan_item_installments")
+}
+
+model Hutang {
+  id               BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId           BigInt   @map("user_id") @db.UnsignedBigInt
+  namaKreditur     String   @map("nama_kreditur") @db.VarChar(255)
+  keteranganPinjam String   @map("keterangan_pinjam") @db.Text
+  tglPinjam        DateTime @map("tgl_pinjam") @db.Date
+  tglKembali       DateTime @map("tgl_kembali") @db.Date
+  nominalPinjam    Decimal  @map("nominal_pinjam") @db.Decimal(15, 2)
+  createdAt        DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.DateTime(0)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, tglPinjam], map: "idx_hutang_user_tanggal")
+  @@map("hutang")
+}
+
+model Piutang {
+  id           BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  userId       BigInt             @map("user_id") @db.UnsignedBigInt
+  namaDebitur  String             @map("nama_debitur") @db.VarChar(255)
+  jenisPiutang PiutangType        @map("jenis_piutang")
+  asalDana     String?            @map("asal_dana") @db.VarChar(100)
+  customDana   String?            @map("custom_dana") @db.VarChar(255)
+  asalLimit    String?            @map("asal_limit") @db.VarChar(100)
+  customLimit  String?            @map("custom_limit") @db.VarChar(255)
+  pembukuan    Int?               @db.UnsignedTinyInt
+  jatuhTempo   Int?               @map("jatuh_tempo") @db.UnsignedTinyInt
+  createdAt    DateTime           @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.DateTime(0)
+  itemsDana    PiutangDanaItem[]
+  itemsLimit   PiutangLimitItem[]
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, jenisPiutang], map: "idx_piutang_user_jenis")
+  @@map("piutang")
+}
+
+model PiutangDanaItem {
+  id               BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  piutangId        BigInt   @map("piutang_id") @db.UnsignedBigInt
+  keteranganPinjam String   @map("keterangan_pinjam") @db.VarChar(255)
+  tglPinjam        DateTime @map("tgl_pinjam") @db.Date
+  tglKembali       DateTime @map("tgl_kembali") @db.Date
+  nominalPinjam    Decimal  @map("nominal_pinjam") @db.Decimal(15, 2)
+  bungaPinjam      Decimal? @map("bunga_pinjam") @db.Decimal(5, 2)
+  createdAt        DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.DateTime(0)
+  piutang          Piutang  @relation(fields: [piutangId], references: [id], onDelete: Cascade)
+
+  @@index([piutangId, tglPinjam], map: "idx_piutang_dana_piutang_tanggal")
+  @@map("piutang_dana_items")
+}
+
+model PiutangLimitItem {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  piutangId      BigInt   @map("piutang_id") @db.UnsignedBigInt
+  keteranganLimit String  @map("keterangan_limit") @db.VarChar(255)
+  tanggalAwal    DateTime @map("tanggal_awal") @db.Date
+  tenor          Int      @db.UnsignedInt
+  tanggalMulai   DateTime @map("tanggal_mulai") @db.Date
+  tanggalSelesai DateTime @map("tanggal_selesai") @db.Date
+  nominalLimit   Decimal  @map("nominal_limit") @db.Decimal(15, 2)
+  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.DateTime(0)
+  piutang        Piutang  @relation(fields: [piutangId], references: [id], onDelete: Cascade)
+
+  @@index([piutangId, tanggalAwal], map: "idx_piutang_limit_piutang_tanggal")
+  @@map("piutang_limit_items")
+}
+
+model StockWatchlistItem {
+  id          BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  userId      BigInt        @map("user_id") @db.UnsignedBigInt
+  symbol      String        @db.VarChar(32)
+  exchange    StockExchange
+  displayName String?       @map("display_name") @db.VarChar(100)
+  sortOrder   Int           @map("sort_order") @db.UnsignedInt
+  createdAt   DateTime      @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.DateTime(0)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol, exchange], map: "uq_stock_watchlist_user_symbol_exchange")
+  @@index([userId, sortOrder], map: "idx_stock_watchlist_user_order")
+  @@map("stock_watchlist_items")
+}
+
+model MarketPreference {
+  id             BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  userId         BigInt         @unique @map("user_id") @db.UnsignedBigInt
+  forexFrom      MarketCurrency @default(USD) @map("forex_from")
+  forexTo        MarketCurrency @default(IDR) @map("forex_to")
+  metalsCurrency MarketCurrency @default(IDR) @map("metals_currency")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.DateTime(0)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("market_preferences")
+}
