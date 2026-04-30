@@ -51,7 +51,7 @@ export default function BaseModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/70 p-4">
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-gray-900/70 p-4">
       <div
         className={`relative max-h-[90vh] w-full overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900 ${maxWidthClassName}`}
       >

@@ -16,7 +16,7 @@ export const WarningModal = ({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-gray-900/70 p-4">
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-gray-900/70 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
         <h2 className="mb-4 text-lg font-bold text-yellow-600">Peringatan</h2>
         <p className="mb-4 text-gray-800 dark:text-gray-100">{message}</p>
@@ -56,7 +56,7 @@ export const ConfirmModal = ({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-gray-900/70 p-4">
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-gray-900/70 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
         <h2 className="mb-4 text-lg font-bold text-blue-600">Konfirmasi</h2>
         <p className="mb-4 text-gray-800 dark:text-gray-100">{message}</p>
